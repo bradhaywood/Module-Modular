@@ -84,6 +84,24 @@ Returns a blessed reference of a plugin (ie: The plugin object). You only need t
 
     my $plugin = $module->plugin('Foo');
 
+=head2 OPTIONS
+
+When you C<use Module::Modular> you can pass a key called C<with> as an array of options. There's only the one at the moment, and that is C<Accessors>. What this does is give you accessor methods for the loaded plugins meta information, so you can do stuff like this
+
+    # MyModule.pm
+    use Module::Modular
+        with => 'Accessors';
+
+    load_plugins qw<Foo Bar>;
+
+    # test.pl
+    for my $plugin ($module->plugins) {
+        say "Name: " . $plugin->name;
+        say "Version: " . $plugin->version;
+    }
+
+Currently that's all there is, but it shows that this module itself is extremely modular. It will only load what you want, when you want.
+   
 =cut
 
 use warnings;

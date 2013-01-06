@@ -91,6 +91,27 @@ METHODS
 
         my $plugin = $module->plugin('Foo');
 
+  OPTIONS
+    When you "use Module::Modular" you can pass a key called "with" as an
+    array of options. There's only the one at the moment, and that is
+    "Accessors". What this does is give you accessor methods for the loaded
+    plugins meta information, so you can do stuff like this
+
+        # MyModule.pm
+        use Module::Modular
+            with => 'Accessors';
+
+        load_plugins qw<Foo Bar>;
+
+        # test.pl
+        for my $plugin ($module->plugins) {
+            say "Name: " . $plugin->name;
+            say "Version: " . $plugin->version;
+        }
+
+    Currently that's all there is, but it shows that this module itself is
+    extremely modular. It will only load what you want, when you want.
+
 AUTHOR
     Brad Haywood <brad@perlpowered.com>
 

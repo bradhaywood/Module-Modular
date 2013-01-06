@@ -1,85 +1,100 @@
-Module-Modular
+NAME
+    Module::Modular - Create optional plugins for your module
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+DESCRIPTION
+    Module::Modular allows you, or others, to create plugins for your
+    modules. They are not loaded by default - only when you want them to be.
+    This means you can even load them further on down in your module if you
+    wish. The idea is to have your plugins handle certain tasks you don't
+    want cluttering the core code of your module. I started writing this
+    before I came across another plugin module called Module::Pluggable. So
+    if you like how that one works better, or even prefer the name (I do),
+    then go check it out. This one is different in the sense you explicitly
+    tell your module what plugins to load, and each plugin may have an
+    initialiser ("__init") that will get run once it has been loaded, which
+    I found pretty neat. This module is modular itself. By importing "with"
+    followed by an array of options you can extend the functionality of
+    Module::Modular. Currently just the one option is available
+    ("Accessors") which provides methods for accessing meta data of your
+    plugins. A plugin can only be loaded if it's within the same namespace
+    and within your path (ie: YourModule::Plugin::*)
 
-A README file is required for CPAN modules since CPAN extracts the README
-file from a module distribution so that people browsing the archive
-can use it to get an idea of the module's uses. It is usually a good idea
-to provide version information here so that people can decide whether
-fixes for the module are worth downloading.
+SYNOPSIS
+        # MyModule.pm
+    
+        package MyModule;
 
+        use Module::Modular;
+        load_plugins qw<Foo Bar>;
+    
+        sub load_another_plugin {
+            load_plugins 'DifferentOne';
+        }
 
-INSTALLATION
+        # MyModule::Plugin::Foo
+        package MyModule::Plugin::Foo;
 
-To install this module, run the following commands:
+        sub __init {
+            my ($class, $name) = @_;
+            # $class = MyModule::Plugin::Foo
+            # $name  = Foo
 
-	perl Makefile.PL
-	make
-	make test
-	make install
+            # some code here to be run when loaded
+        }
 
-SUPPORT AND DOCUMENTATION
+        sub foo {
+            print "You have been foo'd!\n";
+        }
 
-After installing, you can find documentation for this module with the
-perldoc command.
+    Now, when you "use MyModule", the Foo plugin will get loaded and run
+    "__init" from "MyModule::Plugin::Foo". Simple. The initialiser is
+    completely optional. It's quite simple to get a list of plugins, or you
+    can get hold of a single plugin to do stuff with.
 
-    perldoc Module::Modular
+        # Run the foo() method within the Foo plugin
+        my $foo_plugin = $module->plugin('Foo')->foo();
 
-You can also look for information at:
+    Calling the "plugins" method will return an array of your loaded
+    plugins. Each one will be blessed, so you have objects to work with
+    which makes things easier.
 
-    RT, CPAN's request tracker (report bugs here)
-        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Module-Modular
+        # call the foo() method on every loaded plugin
+        for my $plugin ($module->plugins) {
+            $plugin->foo();
+        }
 
-    AnnoCPAN, Annotated CPAN documentation
-        http://annocpan.org/dist/Module-Modular
+METHODS
+    "Module::Modular" exports only a few functions into your module. They
+    are...
 
-    CPAN Ratings
-        http://cpanratings.perl.org/d/Module-Modular
+  load_plugins
+      void load_plugins(@list)
 
-    Search CPAN
-        http://search.cpan.org/dist/Module-Modular/
+    Takes an array of plugins (Not their entire path, just the name of the
+    plugin. For example, if I wanted to load "MyModule::Plugin::Foo" I would
+    only have to use "load_plugins 'Foo'". If it can't load the module for
+    any reason it will print out a warnings and move onto the next one if
+    it's specified.
 
+  plugins
+      @array plugins(void)
 
-LICENSE AND COPYRIGHT
+    Returns an array of your loaded plugins. It will only register those
+    introduced by "load_plugins", just having one in the right namespace and
+    loaded by any other means will do nothing.
 
-Copyright (C) 2013 Brad Haywood
+  plugin
+      $object plugin(string)
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of the the Artistic License (2.0). You may obtain a
-copy of the full license at:
+    Returns a blessed reference of a plugin (ie: The plugin object). You
+    only need to supply the name, not the entire path. For example
 
-L<http://www.perlfoundation.org/artistic_license_2_0>
+        my $plugin = $module->plugin('Foo');
 
-Any use, modification, and distribution of the Standard or Modified
-Versions is governed by this Artistic License. By using, modifying or
-distributing the Package, you accept this license. Do not use, modify,
-or distribute the Package, if you do not accept this license.
+AUTHOR
+    Brad Haywood <brad@perlpowered.com>
 
-If your Modified Version has been derived from a Modified Version made
-by someone other than you, you are nevertheless required to ensure that
-your Modified Version complies with the requirements of this license.
-
-This license does not grant you the right to use any trademark, service
-mark, tradename, or logo of the Copyright Holder.
-
-This license includes the non-exclusive, worldwide, free-of-charge
-patent license to make, have made, use, offer to sell, sell, import and
-otherwise transfer the Package with respect to any patent claims
-licensable by the Copyright Holder that are necessarily infringed by the
-Package. If you institute patent litigation (including a cross-claim or
-counterclaim) against any party alleging that the Package constitutes
-direct or contributory patent infringement, then this Artistic License
-to you shall terminate on the date that such litigation is filed.
-
-Disclaimer of Warranty: THE PACKAGE IS PROVIDED BY THE COPYRIGHT HOLDER
-AND CONTRIBUTORS "AS IS' AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES.
-THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE, OR NON-INFRINGEMENT ARE DISCLAIMED TO THE EXTENT PERMITTED BY
-YOUR LOCAL LAW. UNLESS REQUIRED BY LAW, NO COPYRIGHT HOLDER OR
-CONTRIBUTOR WILL BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, OR
-CONSEQUENTIAL DAMAGES ARISING IN ANY WAY OUT OF THE USE OF THE PACKAGE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+LICENSE
+    This is free software; you can redistribute it and/or modify it under
+    the same terms as the Perl 5 programming language system itself.
 

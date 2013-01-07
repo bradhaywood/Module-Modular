@@ -11,7 +11,7 @@ license  'perl';
 tests_recursive('t');
 
 resources (
-   #repository => 'git://github.com/Brad Haywood/Module-Modular.git',
+   repository => 'https://github.com/bradhaywood/Module-Modular.git',
    bugtracker => 'http://rt.cpan.org/NoAuth/Bugs.html?Dist=Module-Modular',
 );
 

@@ -1,5 +1,9 @@
 Revision history for Module-Modular
 
-0.01    Date/time
-        First version, released on an unsuspecting world.
+0.002   08/01/2012
+        + Fixed bug in getting a single plugin
+        + Added new strict option
+
+0.001   07/01/2012
+        Initial release
 

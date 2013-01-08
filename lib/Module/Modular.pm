@@ -86,7 +86,11 @@ Returns a blessed reference of a plugin (ie: The plugin object). You only need t
 
 =head2 OPTIONS
 
-When you C<use Module::Modular> you can pass a key called C<with> as an array of options. There's only the one at the moment, and that is C<Accessors>. What this does is give you accessor methods for the loaded plugins meta information, so you can do stuff like this
+When you C<use Module::Modular> you can pass a key called C<with> as an arrayref of options or just a string for a single option. 
+
+B<Accessors>
+
+Implements specific accessors to access the meta data of a plugin
 
     # MyModule.pm
     use Module::Modular
@@ -100,7 +104,21 @@ When you C<use Module::Modular> you can pass a key called C<with> as an array of
         say "Version: " . $plugin->version;
     }
 
-Currently that's all there is, but it shows that this module itself is extremely modular. It will only load what you want, when you want.
+B<Strict>
+
+Will not allow you to get a plugin object directly from outside the core modules scope
+
+    # MyModule.pm
+    use Module::Modular
+        with => [qw<Accessors Strict>];
+
+    load_plugins 'Foo';
+    sub get_plugin { my $self = shift; return $self->plugin('Foo'); }
+
+    # test.pl
+    my $c = MyModule->new;
+    $c->plugin('Foo')->foo(); # fails
+    my $plugin = $c->get_plugin(); # works, because it went through the core module first
    
 =cut
 
@@ -109,23 +127,38 @@ use strict;
 
 use Import::Into;
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 our $LoadedPlugins = [];
-our $WithAccessors = 0;
+our $Config        = {
+    'accessors' => 0,
+    'strict'    => 0,
+};
 
 sub import {
     my ($class, %opts) = @_;
     my $caller = scalar caller;
 
     if (exists $opts{with}) {
-        for my $with ($opts{with}) {
-            $WithAccessors = 1
-                if $with eq 'Accessors';
+        if (ref($opts{with})) {
+            for my $with (@{$opts{with}}) {
+                _enable_option($with);
+            }
+        }
+        else {
+            _enable_option($opts{with});
         }
     }
 
     _import_defs($caller,
         qw<load_plugins plugin plugins>);
+}
+
+sub _enable_option {
+    my $opt = shift;
+    for ($opt) {
+        if (/Accessors/) { $Config->{accessors} = 1; }
+        elsif (/Strict/) { $Config->{strict}    = 1; }
+    }
 }
 
 sub _import_defs {
@@ -162,7 +195,7 @@ sub load_plugins {
                 version => $plugin->VERSION||'Unknown',
             }, $plugin;
        
-            if ($WithAccessors) { 
+            if ($Config->{accessors}) { 
                 *{"${plugin}::name"} = sub { return shift->{name}; };
                 *{"${plugin}::version"} = sub { return shift->{version}; };
             }
@@ -172,12 +205,24 @@ sub load_plugins {
 
 sub plugin {
     my ($self, $plugin) = @_;
-    if (grep { $_ eq $plugin } @$LoadedPlugins) {
-        $plugin = scalar($self) . "::Plugin::" . $plugin;
-        return bless {}, $plugin;
+    my $caller  = caller();
+    my @plugins = $self->plugins;
+    if (my $first = $plugins[0]) {
+        $plugin = ref($self) . "::Plugin::" . $plugin;
+        if ($Config->{strict} and ref($first) ne "${caller}::Plugin::" . $first->{name}) {
+            warn "Can't call plugin outside core modules scope";
+            return 0;
+        }
+        if (grep { ref($_) eq $plugin } @$LoadedPlugins) {
+            return bless {}, $plugin;
+        }
+        else {
+            warn "Could not get plugin ${plugin}: Not loaded";
+            return 0;
+        }
     }
     else {
-        warn "Could not get plugin ${plugin}: Not loaded";
+        warn "No plugins loaded";
         return 0;
     }
 }

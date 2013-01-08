@@ -93,9 +93,11 @@ METHODS
 
   OPTIONS
     When you "use Module::Modular" you can pass a key called "with" as an
-    array of options. There's only the one at the moment, and that is
-    "Accessors". What this does is give you accessor methods for the loaded
-    plugins meta information, so you can do stuff like this
+    arrayref of options or just a string for a single option.
+
+    Accessors
+
+    Implements specific accessors to access the meta data of a plugin
 
         # MyModule.pm
         use Module::Modular
@@ -109,8 +111,22 @@ METHODS
             say "Version: " . $plugin->version;
         }
 
-    Currently that's all there is, but it shows that this module itself is
-    extremely modular. It will only load what you want, when you want.
+    Strict
+
+    Will not allow you to get a plugin object directly from outside the core
+    modules scope
+
+        # MyModule.pm
+        use Module::Modular
+            with => [qw<Accessors Strict>];
+
+        load_plugins 'Foo';
+        sub get_plugin { my $self = shift; return $self->plugin('Foo'); }
+
+        # test.pl
+        my $c = MyModule->new;
+        $c->plugin('Foo')->foo(); # fails
+        my $plugin = $c->get_plugin(); # works, because it went through the core module first
 
 AUTHOR
     Brad Haywood <brad@perlpowered.com>

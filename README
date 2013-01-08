@@ -91,6 +91,32 @@ METHODS
 
         my $plugin = $module->plugin('Foo');
 
+  stash
+    This is a plugin method (Called from a plugin only). It's a really
+    simple method used to get the data of a specific global variable from
+    the base module. After all, what's the point of a plugin if you have
+    absolutely no way to share data, right?
+
+        # MyModule.pm
+        package MyModule;
+
+        use Module::Modular;
+
+        our $PluginStash = { bees => 'knees' };
+        load_plugins 'Bees';
+
+        # MyModule::Plugin::Bees
+        package MyModule::Plugin::Bees;
+
+        sub __init {
+            my ($self, $name) = @_;
+            print "The $name have " . $self->stash('bees');
+        }
+
+    It's not overly useful, secure, or remotely interesting, but if you need
+    a quick and dirty way to get some data to your plugins, it works. I am
+    trying to find a neater solution..
+
   OPTIONS
     When you "use Module::Modular" you can pass a key called "with" as an
     arrayref of options or just a string for a single option.

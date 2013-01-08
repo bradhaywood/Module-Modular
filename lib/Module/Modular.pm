@@ -84,6 +84,28 @@ Returns a blessed reference of a plugin (ie: The plugin object). You only need t
 
     my $plugin = $module->plugin('Foo');
 
+=head2 stash
+
+This is a plugin method (Called from a plugin only). It's a really simple method used to get the data of a specific global variable from the base module. After all, what's the point of a plugin if you have absolutely no way to share data, right?
+
+    # MyModule.pm
+    package MyModule;
+
+    use Module::Modular;
+
+    our $PluginStash = { bees => 'knees' };
+    load_plugins 'Bees';
+
+    # MyModule::Plugin::Bees
+    package MyModule::Plugin::Bees;
+
+    sub __init {
+        my ($self, $name) = @_;
+        print "The $name have " . $self->stash('bees');
+    }
+
+It's not overly useful, secure, or remotely interesting, but if you need a quick and dirty way to get some data to your plugins, it works. I am trying to find a neater solution..
+
 =head2 OPTIONS
 
 When you C<use Module::Modular> you can pass a key called C<with> as an arrayref of options or just a string for a single option. 
@@ -127,7 +149,7 @@ use strict;
 
 use Import::Into;
 
-our $VERSION = '0.002';
+our $VERSION = '0.003';
 our $LoadedPlugins = [];
 our $Config        = {
     'accessors' => 0,
@@ -187,8 +209,17 @@ sub load_plugins {
             }
 
             $plugin->import::into($caller);
+            *{"${plugin}::stash"} = sub {
+                my ($mod, $key) = @_;
+                if ($mod = ref($mod)) {
+                    my $module = (split('::', $mod))[0];
+                    return ${"${module}::PluginStash"}->{$key};
+                }
+            };
+
             if ($plugin->can('__init')) {
-                $plugin->__init($name);
+                my $blessed_plugin = bless {}, $plugin;
+                $blessed_plugin->__init($name);
             }
             push @$LoadedPlugins, bless {
                 name    => $name,
